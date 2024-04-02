@@ -15,7 +15,7 @@ const agreements = await fetchAgreementsByMajor({
 })
 
 //Print out agreements grouped by major
-console.log(majors)
+console.log(agreements)
 ```
 
 ## Installation
