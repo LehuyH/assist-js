@@ -69,6 +69,20 @@ Fetch class articulation agreements between two schools grouped by major
 | `fromSchoolID`| `string` | **Required**. The ID of the school from which the agreements are made |
 | `toSchoolID`  | `string` | **Required**. The ID of the school to which the agreements are made |
 
+### `fetchIGETC(options)`
+
+Fetches the IGETC transferable coureses from a school.
+Filters out courses that have been removed from the agreement.
+
+```typescript
+  fetchIGETC({ year, fromSchoolID })
+```
+
+| Parameter     | Type     | Description                       |
+| :------------ | :------- | :-------------------------------- |
+| `year`        | `number` | **Required**. The year of the agreements |
+| `fromSchoolID`| `string` | **Required**. The ID of the school from which the agreements are made |
+
 
 ## Utility API Reference
 
@@ -99,6 +113,19 @@ For use with `fetchAssistArticulationURL(url)`
 | Parameter | Type     | Description                       |
 | :-------- | :------- | :-------------------------------- |
 | `key`     | `string` | **Required**. Key to create URL from |
+
+### `createAssistIGETCURL(options)`
+
+For use with `fetchIGETC(url)`
+
+```typescript
+  createAssistIGETCURL({ year, fromSchoolID })
+```
+
+| Parameter     | Type     | Description                       |
+| :------------ | :------- | :-------------------------------- |
+| `year`        | `number` | **Required**. The year of the articulation |
+| `fromSchoolID`| `string` | **Required**. The ID of the school from which the articulation is made |
 
 ### `fetchAssistArticulationURL(url)`
 

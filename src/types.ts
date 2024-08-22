@@ -1,6 +1,9 @@
-export interface AssistFetchOptions {
+export interface AssistBaseFetchOptions {
     year: number;
     fromSchoolID: number;
+}
+
+export interface AssistMajorFetchOptions extends AssistBaseFetchOptions {
     toSchoolID: number;
 }
 
@@ -30,6 +33,19 @@ export interface Course {
     minUnits: number;
     maxUnits: number;
 }
+
+export interface TransferArea {
+    areaType: number;
+    areaParentId: number;
+    code: string;
+    codeDescription: string;
+    courseIdentifierParentId: number;
+    endDate: string;
+}
+
+export type IGETCCourse = Omit<Course, 'id' | 'position' | 'departmentParentId' | 'begin' | 'end'> & {
+    transferAreas: TransferArea[];
+};
 
 export interface Series {
     conjunction: string;

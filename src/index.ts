@@ -1,5 +1,5 @@
-import type { Agreement, AgreementByMajor, Course, Instruction, School, Section, AssistFetchOptions } from './types';
-import { createAssistMajorURL, createAssistArticulationURL, createAssistArticulationURLFromKey } from './utils';
+import type { Agreement, AgreementByMajor, Course, Instruction, School, Section, AssistMajorFetchOptions, AssistBaseFetchOptions, IGETCCourse, TransferArea } from './types';
+import { createAssistMajorURL, createAssistArticulationURL, createAssistArticulationURLFromKey, createAssistIGETCURL } from './utils';
 
 
 /**
@@ -88,7 +88,7 @@ export async function fetchAssistArticulationURL(url: string): Promise<{ agreeme
  * @returns An array of majors.
  * @throws If the fetch request fails or if no major agreements are found.
  */
-export async function fetchMajors({ year, fromSchoolID, toSchoolID }: AssistFetchOptions): Promise<{
+export async function fetchMajors({ year, fromSchoolID, toSchoolID }: AssistMajorFetchOptions): Promise<{
     label: string;
     key: string;
 }[]> {
@@ -116,7 +116,7 @@ export async function fetchMajors({ year, fromSchoolID, toSchoolID }: AssistFetc
  * @param toSchoolID - The ID of the school to which the agreements are made.
  * @returns A promise that resolves to the fetched agreements.
  */
-export async function fetchAllAgreements({ year, fromSchoolID, toSchoolID }: AssistFetchOptions): Promise<{
+export async function fetchAllAgreements({ year, fromSchoolID, toSchoolID }: AssistMajorFetchOptions): Promise<{
     agreements: Agreement[];
     from: School;
     to: School;
@@ -137,7 +137,7 @@ export async function fetchAllAgreements({ year, fromSchoolID, toSchoolID }: Ass
  * @param toSchoolID - The ID of the school to which the agreements are made.
  * @returns An array of AgreementByMajor objects representing the agreements by major.
  */
-export async function fetchAgreementsByMajor({ year, fromSchoolID, toSchoolID }: AssistFetchOptions): Promise<AgreementByMajor[]> {
+export async function fetchAgreementsByMajor({ year, fromSchoolID, toSchoolID }: AssistMajorFetchOptions): Promise<AgreementByMajor[]> {
     const majors = await fetchMajors({ year, fromSchoolID, toSchoolID });
 
     const agreementsByMajors = [] as AgreementByMajor[];
@@ -161,4 +161,48 @@ export async function fetchAgreementsByMajor({ year, fromSchoolID, toSchoolID }:
     }
 
     return agreementsByMajors;
+}
+
+/**
+ * Fetches the IGETC transferable coureses from a school.
+ * Filters out courses that have been removed from the agreement.
+ * @param year - The year of the agreements.
+ * @param fromSchoolID - The ID of the school from which the agreements are made.
+ * @returns An array of IGETC transferable courses.
+ */
+export async function fetchIGETC({ year, fromSchoolID }: AssistBaseFetchOptions): Promise<IGETCCourse[]> {
+    const url = createAssistIGETCURL({ year, fromSchoolID });
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(response.statusText);
+
+    const responseJSON = await response.json();
+
+    if (!responseJSON.courseInformationList) throw new Error('No results found');
+
+    const courses = responseJSON.courseInformationList.map((e: any) => {
+        return {
+            courseIdentifierParentId: e.courseIdentifierParentId,
+            courseTitle: e.courseTitle,
+            courseNumber: e.courseNumber,
+            prefix: e.prefixCode,
+            prefixDescription: e.prefixDescription,
+            department: e.departmentName,
+            minUnits: e.minUnits,
+            maxUnits: e.maxUnits,
+            transferAreas: e.transferAreas.filter((e: any) =>
+                new Date(e.endDate) > new Date()
+            ).map((e: any) => {
+                return {
+                    areaType: e.areaType,
+                    areaParentId: e.areaParentId,
+                    code: e.code,
+                    codeDescription: e.codeDescription.trim(),
+                    courseIdentifierParentId: e.courseIdentifierParentId,
+                    endDate: e.endDate,
+                } as TransferArea;
+            }),
+        } as IGETCCourse;
+    }).filter(((c: IGETCCourse) => c.transferAreas.length > 0));
+
+    return courses;
 }
