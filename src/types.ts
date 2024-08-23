@@ -54,15 +54,18 @@ export interface Series {
 }
 
 export interface Section {
-    type: "Series" | "Course";
-    series?: Series;
-    course?: Course;
-    visibleCrossListedCourses?: any[];
-    requisites?: any[];
-    courseAttributes?: any[];
-    id?: string;
-    position?: number;
-    attributes?: any[];
+    advisements?: any[];
+    courses: {
+        type: "Series" | "Course";
+        series?: Series;
+        course?: Course;
+        visibleCrossListedCourses?: any[];
+        requisites?: any[];
+        courseAttributes?: any[];
+        id?: string;
+        position?: number;
+        attributes?: any[];
+    }[];
 }
 
 export interface Agreement {

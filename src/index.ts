@@ -31,7 +31,7 @@ export async function fetchAssistArticulationURL(url: string): Promise<{ agreeme
             courses: e.articulation.sendingArticulation.items.flatMap((e: any) => {
                 return {
                     group: e.courseConjunction,
-                    classes: e.items.flatMap((e: any) => e)
+                    classes: e.items?.flatMap((e: any) => e) ?? []
                 }
             }) as Agreement[]
         }
@@ -62,7 +62,10 @@ export async function fetchAssistArticulationURL(url: string): Promise<{ agreeme
                     sections: sections
                         .filter((s: any) => s.rows && s.rows.length > 0)
                         .map((s: any) => {
-                            return s.rows.flatMap((r: any) => r.cells)
+                            return {
+                                advisements: s.advisements,
+                                courses: s.rows.flatMap((r: any) => r.cells)
+                            }
                         })
                 }
             );
