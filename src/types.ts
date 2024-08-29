@@ -7,14 +7,21 @@ export interface AssistMajorFetchOptions extends AssistBaseFetchOptions {
     toSchoolID: number;
 }
 
-export interface Instruction {
-    type: string;
-    conjunction: string;
-    amountQuantifier: string;
+export interface TransferArea {
+    areaType: number;
+    areaParentId: number;
+    code: string;
+    codeDescription: string;
+    courseIdentifierParentId: number;
+    endDate: string;
+}
+
+export interface Advisement {
+    type: string; // e.g., "NFollowing"
     amount: number;
-    amountUnitType: string;
-    id: string;
-    selectionType: string;
+    amountUnitType: string; // e.g., "Course"
+    position: number;
+    selectionType: string; // e.g., "Complete"
 }
 
 export interface Course {
@@ -34,14 +41,52 @@ export interface Course {
     maxUnits: number;
 }
 
-export interface TransferArea {
-    areaType: number;
-    areaParentId: number;
-    code: string;
-    codeDescription: string;
-    courseIdentifierParentId: number;
-    endDate: string;
+export interface CourseCell {
+    templateCellId: string;
+    type: "Course";
+    courseAttributes?: string[];
+    generalAttributes?: string[];
+    courses: Course[];
 }
+
+export interface SeriesCell {
+    templateCellId: string;
+    type: "Series";
+    instruction: string;
+    seriesAttributes?: string[];
+    generalAttributes?: string[];
+    courses: Course[];
+}
+
+export interface GeneralEducationCell {
+    templateCellId: string;
+    type: "GeneralEducation";
+    generalEducationArea: {
+        code: string;
+        name: string;
+    };
+    courseAttributes?: string[];
+    generalAttributes?: string[];
+    courses: Course[];
+}
+
+export type CellType = CourseCell | SeriesCell | GeneralEducationCell;
+
+export interface Section {
+    type: string;
+    sectionAdvisements?: Advisement[];
+    sectionAttributes?: string[];
+    agreements: Agreement[];
+}
+
+export interface Group {
+    type: string;
+    groupInstruction?: string;
+    groupAttributes?: string[];
+    groupAdvisements?: Advisement[];
+    sections: Section[];
+}
+
 
 export type IGETCCourse = Omit<Course, 'id' | 'position' | 'departmentParentId' | 'begin' | 'end'> & {
     transferAreas: TransferArea[];
@@ -53,24 +98,35 @@ export interface Series {
     courses: Course[];
 }
 
-export interface Section {
-    advisements?: any[];
-    courses: {
-        type: "Series" | "Course";
-        series?: Series;
-        course?: Course;
-        visibleCrossListedCourses?: any[];
-        requisites?: any[];
-        courseAttributes?: any[];
-        id?: string;
-        position?: number;
-        attributes?: any[];
-    }[];
+export interface ReceivingAttributes {
+    type: string;
+    attributes: any[];
+    courseAttributes?: any[];
+    seriesAttributes?: any[];
+    seriesCourseAttributes?: any[];
 }
 
 export interface Agreement {
-    group: 'And' | 'Or';
-    courses: Course[];
+    templateCellId: string;
+    receivingAttributes: ReceivingAttributes;
+    articulation: Articulation;
+}
+
+export interface Articulation {
+    type: string;
+    seriesAttributes?: string[];
+    courseAttributes?: string[];
+    generalAttributes?: string[];
+    receivingAttributes?: string[];
+    sendingArticulation: {
+        generalAttributes?: string[];
+        courseGroupConjunctions: string[];
+        pickOneGroup: {
+            instruction: string;
+            fromClasses: Course[];
+            generalAttributes?: string[];
+        }
+    };
 }
 
 export interface School {
@@ -88,5 +144,7 @@ export interface AgreementByMajor {
     from: School;
     to: School;
     agreements: Agreement[];
-    groups: Record<string, { instruction: Instruction | null, sections: Section[] }[]>;
+    groups: Record<string, Group[]>;
 }
+
+

@@ -1,70 +1,93 @@
-import type { Agreement, AgreementByMajor, Course, Instruction, School, Section, AssistMajorFetchOptions, AssistBaseFetchOptions, IGETCCourse, TransferArea } from './types';
+import type { Agreement, AgreementByMajor, Course, Group, School, Section, AssistMajorFetchOptions, AssistBaseFetchOptions, IGETCCourse, TransferArea } from './types';
 import { createAssistMajorURL, createAssistArticulationURL, createAssistArticulationURLFromKey, createAssistIGETCURL } from './utils';
 
+//INTERNAL
+function processToGroups(data: any[]): Record<string, Group[]> {
+    data.sort((a: any, b: any) => a.position - b.position);
 
-/**
- * Fetches the Assist Articulation URL and processes the response data into a more usable format.
- * @param url - The URL to fetch the data from.
- * @returns An object containing the agreements, from school, to school, and agreeements groups.
- */
-export async function fetchAssistArticulationURL(url: string): Promise<{ agreements: Agreement[], from: School, to: School, groups: Record<string, { instruction: Instruction | null, sections: Section[] }[]> }> {
-    if (!url.startsWith('https://assist.org/api/articulation/Agreements')) throw new Error('Invalid URL provided. Must be an Assist API Articulation URL. See createAssistArticulationURL or createAssistArticulationURLFromKey for more information.');
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(response.statusText);
-
-    const responseJSON = await response.json();
-    const to = JSON.parse(responseJSON.result.receivingInstitution);
-    const from = JSON.parse(responseJSON.result.sendingInstitution);
-
-    if (!responseJSON.isSuccessful) throw new Error('Failed to fetch data from assist.org');
-
-    //Useful data is in responseJSON.results.articulations
-    const agreementsRaw = JSON.parse(responseJSON.result.articulations);
-
-    //Loop through agreements and return the data in the format we want
-    const agreements = agreementsRaw.map((e: any) => {
-        if (!e.articulation) return null;
-        if (!e.articulation.sendingArticulation) return null;
-        if (!e.articulation.sendingArticulation.items) return null;
-        return {
-            target: e.articulation.course as Course,
-            courses: e.articulation.sendingArticulation.items.flatMap((e: any) => {
-                return {
-                    group: e.courseConjunction,
-                    classes: e.items?.flatMap((e: any) => e) ?? []
-                }
-            }) as Agreement[]
-        }
-    }).filter((e: any) => e !== null);
-
-    //We also want to parse groups which is in the responseJSON.results.templateAssets
-    const templateAssetsRaw = JSON.parse(responseJSON.result.templateAssets).sort((a: any, b: any) => a.position - b.position);
+    let prefix = [] as string[];
+    let numTitleMade = 0
+    let sectionCreated = false
 
     const groups = {
         "DEFAULT": []
-    } as Record<string, {
-        instruction: Instruction | null,
-        sections: Section[]
-    }[]>;
+    } as Record<string, Group[]>;
 
-    for (const section of templateAssetsRaw) {
-        const { instruction, sections } = section
-        if (section.type === 'RequirementTitle') {
-            groups[section.content] = [];
+    for (const group of data) {
+        const { sections } = group
+        if (group.type === 'RequirementTitle') {
+            //We want to chain subsequent titles together
+            if (numTitleMade > 1 && sectionCreated) {
+                prefix = [];
+            }
+
+            prefix.push(group.content!);
+            numTitleMade++
         }
-        else if (section.type === 'RequirementGroup') {
-            //Get latest section added
-            const latestSectionKey = Object.keys(groups).pop() as string;
+        else if (group.type === 'RequirementGroup') {
+            let groupName = prefix.join(', ');
+            prefix.pop();
+            sectionCreated = true;
+            numTitleMade = 0;
 
-            groups[latestSectionKey].push(
+            if (!groupName) {
+                groupName = 'DEFAULT';
+            } else {
+                groups[groupName] = [];
+            }
+
+            const GETitles = []
+
+
+            //Get latest section added
+            groups[groupName].push(
                 {
-                    instruction,
-                    sections: sections
-                        .filter((s: any) => s.rows && s.rows.length > 0)
+                    type: group.type,
+                    groupInstruction: group.instruction,
+                    groupAttributes: group.attributes?.map((a: any) => a.content),
+                    groupAdvisements: group.advisements,
+                    sections: sections!
+                        .sort((a: any, b: any) => a.position - b.position)
+                        .filter((s:any)=> s.rows)
                         .map((s: any) => {
                             return {
-                                advisements: s.advisements,
-                                courses: s.rows.flatMap((r: any) => r.cells)
+                                type: s.type,
+                                sectionAdvisements: s.advisements,
+                                sectionAttributes: s.attributes?.map((a: any) => a.content),
+                                agreements: s.rows.map((r: any) => {
+                                    return {
+                                        agreementAttributes: r.attributes,
+                                        courses: r.cells.map((c: any) => {
+                                            if(c.type === 'GeneralEducation'){
+                                                return {
+                                                    templateCellId: c.id,
+                                                    type: "GeneralEducation",
+                                                    generalEducationArea:c.generalEducationArea,
+                                                    courseAttributes: c.courseAttributes?.map((a: any) => a.content) ?? [],
+                                                    generalAttributes: c.generalEducationAreaAttributes?.map((a: any) => a.content) ?? [],
+                                                    courses: c.generalEducationArea.coureses
+                                                }
+                                            }else if (c.type === 'Series') {
+                                                return {
+                                                    templateCellId: c.id,
+                                                    type: "Series",
+                                                    instruction: c.series.conjunction,
+                                                    seriesAttributes: c.seriesAttributes?.map((a: any) => a.content),
+                                                    generalAttributes: c.attributes?.map((a: any) => a.content),
+                                                    courses: c.series.courses
+                                                }
+                                            } else {
+                                                return {
+                                                    templateCellId: c.id,
+                                                    type: "Course",
+                                                    courseAttributes: c.courseAttributes?.map((a: any) => a.content),
+                                                    generalAttributes: c.attributes?.map((a: any) => a.content),
+                                                    courses: [c.course]
+                                                }
+                                            }
+                                        })
+                                    }
+                                }).sort((a: any, b: any) => a.position - b.position)
                             }
                         })
                 }
@@ -74,8 +97,69 @@ export async function fetchAssistArticulationURL(url: string): Promise<{ agreeme
 
     //Delete the default group if it's empty
     if (groups.DEFAULT.length === 0) delete groups.DEFAULT;
+    return groups;
+}
+
+function processFromAgreements(data: any[],s:string): Agreement[] {
+    return data.map((e: any) => {
+        return {
+            templateCellId: e.templateCellId,
+            receivingAttributes: e.receivingAttributes,
+            articulation: {
+                type: e.articulation.type,
+                seriesAttributes: e.articulation.seriesAttributes?.map((e: any) => e.content) ?? [],
+                courseAttributes: e.articulation.courseAttributes?.map((e: any) => e.content) ?? [],
+                generalAttributes: e.articulation.attributes.map((e: any) => e.content),
+                receivingAttributes: e.articulation.receivingAttributes.map((e: any) => e.content),
+                sendingArticulation: {
+                    generalAttributes: e.articulation.sendingArticulation.attributes.map((e: any) => e.content),
+                    courseGroupConjunctions: e.articulation.sendingArticulation.courseGroupConjunctions,
+                    pickOneGroup: e.articulation.sendingArticulation.items.map((e: any) => {
+                        return {
+                            instruction: e.courseConjunction,
+                            fromClasses: e.items,
+                            generalAttributes: e.attributes.map((e: any) => e.content)
+                        }
+                    })
+                }
+
+            }
+        }
+    })
+}
+
+
+/**
+ * Fetches the Assist Articulation URL and processes the response data into a more usable format.
+ * @param url - The URL to fetch the data from.
+ * @returns An object containing the agreements, from school, to school, and agreeements groups.
+ */
+export async function fetchAssistArticulationURL(url: string): Promise<{ majorID: string, agreements: Agreement[], from: School, to: School, groups: Record<string, Group[]> }> {
+    if (!url.startsWith('https://assist.org/api/articulation/Agreements')) throw new Error('Invalid URL provided. Must be an Assist API Articulation URL. See createAssistArticulationURL or createAssistArticulationURLFromKey for more information.');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(response.statusText);
+
+    const responseJSON = await response.json();
+    const to = JSON.parse(responseJSON.result.receivingInstitution);
+    const from = JSON.parse(responseJSON.result.sendingInstitution);
+
+    const majorID = `${from.id}-${to.id}-${responseJSON.name}`;
+
+    if (!responseJSON.isSuccessful) throw new Error('Failed to fetch data from assist.org');
+
+    //Useful data is in responseJSON.results.articulations
+    const agreementsRaw = JSON.parse(responseJSON.result.articulations);
+
+    //Loop through agreements and return the data in the format we want
+    const agreements = processFromAgreements(agreementsRaw,url);
+
+    //We also want to parse groups which is in the responseJSON.results.templateAssets
+    const templateAssetsRaw = JSON.parse(responseJSON.result.templateAssets).sort((a: any, b: any) => a.position - b.position);
+
+    const groups = processToGroups(templateAssetsRaw);
 
     return {
+        majorID,
         from,
         to,
         agreements,
@@ -123,10 +207,7 @@ export async function fetchAllAgreements({ year, fromSchoolID, toSchoolID }: Ass
     agreements: Agreement[];
     from: School;
     to: School;
-    groups: Record<string, {
-        instruction: Instruction | null;
-        sections: Section[];
-    }[]>;
+    groups: Record<string, Group[]>;
 }> {
     const url = createAssistArticulationURL({ year, fromSchoolID, toSchoolID });
     return await fetchAssistArticulationURL(url);
