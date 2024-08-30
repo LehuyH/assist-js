@@ -109,9 +109,9 @@ function processFromAgreements(data: any[]): Agreement[] {
                 generalAttributes: e.articulation.attributes?.map((e: any) => e.content) ?? [],
                 receivingAttributes: e.articulation.receivingAttributes?.map((e: any) => e.content) ?? [],
                 sendingArticulation: {
-                    generalAttributes: e.articulation.sendingArticulation.attributes?.map((e: any) => e.content) ?? [],
-                    courseGroupConjunctions: e.articulation.sendingArticulation.courseGroupConjunctions,
-                    pickOneGroup: e.articulation.sendingArticulation.items.map((e: any) => {
+                    generalAttributes: e.articulation.sendingArticulation?.attributes?.map((e: any) => e.content) ?? [],
+                    courseGroupConjunctions: e.articulation.sendingArticulation?.courseGroupConjunctions,
+                    pickOneGroup: e.articulation.sendingArticulation?.items.map((e: any) => {
                         return {
                             instruction: e.courseConjunction,
                             fromClasses: e.items,
