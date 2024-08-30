@@ -35,10 +35,7 @@ function processToGroups(data: any[]): Record<string, Group[]> {
             } else {
                 groups[groupName] = [];
             }
-
-            const GETitles = []
-
-
+            
             //Get latest section added
             groups[groupName].push(
                 {
@@ -56,7 +53,7 @@ function processToGroups(data: any[]): Record<string, Group[]> {
                                 sectionAttributes: s.attributes?.map((a: any) => a.content),
                                 agreements: s.rows.map((r: any) => {
                                     return {
-                                        agreementAttributes: r.attributes,
+                                        agreementAttributes: r.attributes ?? [],
                                         courses: r.cells.map((c: any) => {
                                             if(c.type === 'GeneralEducation'){
                                                 return {
@@ -100,7 +97,7 @@ function processToGroups(data: any[]): Record<string, Group[]> {
     return groups;
 }
 
-function processFromAgreements(data: any[],s:string): Agreement[] {
+function processFromAgreements(data: any[]): Agreement[] {
     return data.map((e: any) => {
         return {
             templateCellId: e.templateCellId,
@@ -109,16 +106,16 @@ function processFromAgreements(data: any[],s:string): Agreement[] {
                 type: e.articulation.type,
                 seriesAttributes: e.articulation.seriesAttributes?.map((e: any) => e.content) ?? [],
                 courseAttributes: e.articulation.courseAttributes?.map((e: any) => e.content) ?? [],
-                generalAttributes: e.articulation.attributes.map((e: any) => e.content),
-                receivingAttributes: e.articulation.receivingAttributes.map((e: any) => e.content),
+                generalAttributes: e.articulation.attributes?.map((e: any) => e.content) ?? [],
+                receivingAttributes: e.articulation.receivingAttributes?.map((e: any) => e.content) ?? [],
                 sendingArticulation: {
-                    generalAttributes: e.articulation.sendingArticulation.attributes.map((e: any) => e.content),
+                    generalAttributes: e.articulation.sendingArticulation.attributes?.map((e: any) => e.content) ?? [],
                     courseGroupConjunctions: e.articulation.sendingArticulation.courseGroupConjunctions,
                     pickOneGroup: e.articulation.sendingArticulation.items.map((e: any) => {
                         return {
                             instruction: e.courseConjunction,
                             fromClasses: e.items,
-                            generalAttributes: e.attributes.map((e: any) => e.content)
+                            generalAttributes: e.attributes?.map((e: any) => e.content) ?? []
                         }
                     })
                 }
@@ -151,7 +148,7 @@ export async function fetchAssistArticulationURL(url: string): Promise<{ majorID
     const agreementsRaw = JSON.parse(responseJSON.result.articulations);
 
     //Loop through agreements and return the data in the format we want
-    const agreements = processFromAgreements(agreementsRaw,url);
+    const agreements = processFromAgreements(agreementsRaw);
 
     //We also want to parse groups which is in the responseJSON.results.templateAssets
     const templateAssetsRaw = JSON.parse(responseJSON.result.templateAssets).sort((a: any, b: any) => a.position - b.position);
