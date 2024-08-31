@@ -88,6 +88,7 @@ export interface Group {
     groupInstruction: {
         type: string;
         id: string;
+        conjunction?: string;
         selectionType: string;
         amount?: number;
         amountQuantifier?: string;
