@@ -39,6 +39,10 @@ export interface Course {
     end: string;
     minUnits: number;
     maxUnits: number;
+    attributes?: [{
+        position:number,
+        content:string
+    }]
 }
 
 export interface CourseCell {
@@ -130,7 +134,7 @@ export interface Articulation {
             instruction: string;
             fromClasses: Course[];
             generalAttributes?: string[];
-        }
+        }[];
     };
 }
 
