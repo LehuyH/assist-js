@@ -1,3 +1,8 @@
+/**
+ * This module contains the types used in the library.
+ * @module
+ */
+
 export interface AssistBaseFetchOptions {
     year: number;
     fromSchoolID: number;
@@ -85,7 +90,7 @@ export interface Section {
 
 export interface Group {
     type: string;
-    groupInstruction: {
+    groupInstruction?: {
         type: string;
         id: string;
         conjunction?: string;
