@@ -85,7 +85,17 @@ export interface Section {
 
 export interface Group {
     type: string;
-    groupInstruction?: string;
+    groupInstruction: {
+        type: string;
+        id: string;
+        selectionType: string;
+        amount?: number;
+        amountQuantifier?: string;
+        amountUnitType?: string;
+        toAmountDeterminer?: string;
+        toAmount?: number;
+        areaType?: string;
+    };
     groupAttributes?: string[];
     groupAdvisements?: Advisement[];
     sections: Section[];
