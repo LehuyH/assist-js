@@ -76,7 +76,7 @@ export interface Section {
     type: string;
     sectionAdvisements?: Advisement[];
     sectionAttributes?: string[];
-    agreements: Agreement[];
+    agreements: Row[];
 }
 
 export interface Group {
@@ -110,6 +110,11 @@ export interface Agreement {
     templateCellId: string;
     receivingAttributes: ReceivingAttributes;
     articulation: Articulation;
+}
+
+export interface Row{
+    agreementAttributes: string[];
+    courses: CellType[];
 }
 
 export interface Articulation {

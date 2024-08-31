@@ -1,7 +1,7 @@
 {
   "name": "@lehuyh/assist-js",
   "description": "An unofficial JavaScript library for fetching class articulation agreements between schools from ASSIST.org",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "license": "MIT",
   "exports": "./src/index.ts",
   "type": "module",
